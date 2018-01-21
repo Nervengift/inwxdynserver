@@ -5,6 +5,8 @@ extern crate serde_xml_rs;
 
 pub use self::errors::{UpdateError, UpdateResult};
 
+use std::net::Ipv6Addr;
+
 const API_URL: &str = "https://api.domrobot.com/xmlrpc/";
 
 // not a constant because those can't be used in fmt macros
@@ -88,7 +90,7 @@ struct Name {
 
 // example response
 // <?xml version=\"1.0\" encoding=\"UTF-8\"?><methodResponse><params><param><value><struct><member><name>code</name><value><int>1000</int></value></member><member><name>msg</name><value><string>Command completed successfully</string></value></member><member><name>svTRID</name><value><string>20180120-136054940</string></value></member><member><name>runtime</name><value><double>0.705600</double></value></member></struct></value></param></params></methodResponse>
-pub fn update_dns(user: &str, pass: &str, domain_id: u32, ip: &str) -> UpdateResult {
+pub fn update_dns(user: &str, pass: &str, domain_id: u32, ip: Ipv6Addr) -> UpdateResult {
     let api_xml = format!(api_xml!(), user=user, pass=pass, domain_id=domain_id, ip=ip);
 
     let client = reqwest::Client::new();

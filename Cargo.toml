@@ -11,4 +11,4 @@ reqwest = "0.8"
 serde_derive = "1.0"
 serde = "1.0"
 serde-xml-rs = "0.2"
-xml-rs= "0.7"
+trust-dns = { version = "^0.13", default-features = false }
