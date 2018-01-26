@@ -32,23 +32,6 @@ const INWX_USER: &str = "user";
 const INWX_PASS: &str = "password";
 const HOSTNAME: &str = "foo@example.com";
 
-enum Type {
-    MX,
-    A,
-    AAAA,
-}
-
-impl Display for Type {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let rep = match self {
-            &Type::MX => "MX",
-            &Type::A => "A",
-            &Type::AAAA => "AAAA",
-        };
-        write!(f, "{}", rep)
-    }
-}
-
 type TokenMap = HashMap<String, (Name, u32)>;
 
 struct UpdateService {
