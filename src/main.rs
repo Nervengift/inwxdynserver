@@ -13,7 +13,7 @@ extern crate hyper;
 extern crate futures;
 
 use std::fmt::Display;
-use std::net::Ipv6Addr;
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -49,8 +49,10 @@ impl Display for Type {
     }
 }
 
+type TokenMap = HashMap<String, (Name, u32)>;
+
 struct UpdateService {
-    tokens: Arc<HashMap<String, u32>>,
+    tokens: Arc<TokenMap>,
 }
 
 impl Service for UpdateService {
@@ -67,22 +69,63 @@ impl Service for UpdateService {
                                              .with_body("try POSTind data")))
             },
             (&Method::Post, "/update") => {
+                let new_addr = req.remote_addr().unwrap().ip();  // TODO: when will this fail?
                 let tokens = self.tokens.clone();
                 Box::new(req.body().concat2().map(move |b| {
                     let token = String::from_utf8_lossy(b.as_ref().into());
                     println!("{}", token);
-                    println!("{:?}", tokens.get(&*token));
-                    let body = "ok";
+                    let (hostname, domain_id) = match tokens.get(&*token) {
+                        Some(&(ref hostname, domain_id)) => (hostname, domain_id),
+                        None => {
+                            return Response::new()
+                                .with_status(StatusCode::Unauthorized)
+                                .with_body("unknown token")},
+                    };
+
+                    let changed = match new_addr {
+                        IpAddr::V4(new_ip) => {
+                            let old_ip = dns::lookup::<Ipv4Addr>(Name::from_str(HOSTNAME).unwrap());
+                            match old_ip {
+                                Ok(Some(ip)) => new_ip != ip,
+                                // TODO: log errors?
+                                _ => true,
+                            }
+                        },
+                        IpAddr::V6(new_ip) => {
+                            let old_ip = dns::lookup::<Ipv6Addr>(Name::from_str(HOSTNAME).unwrap());
+                            match old_ip {
+                                Ok(Some(ip)) => new_ip != ip,
+                                // TODO: log errors?
+                                _ => true,
+                            }
+                        },
+                    };
+
+                    if changed {
+                        match inwx::update_dns(INWX_USER, INWX_PASS, domain_id, new_addr) {
+                            Ok(_) => println!("Changed ip to {}", new_addr),
+                            Err(err) => return Response::new()
+                                .with_status(StatusCode::InternalServerError)
+                                .with_body("NACK could not update DNS record"),
+                        }
+                    } else {
+                        println!("No change");
+                    }
+
+                    let body = "ACK";
                     Response::new()
                         .with_header(ContentLength(body.len() as u64))
                         .with_body(body)
                 }))
             },
             (_, "/") => {
-                Box::new(futures::future::ok(Response::new().with_status(StatusCode::NotFound).with_body("currently only endpoint is /update")))
+                Box::new(futures::future::ok(Response::new()
+                                             .with_status(StatusCode::NotFound)
+                                             .with_body("currently the only endpoint is /update")))
             }
             _ => {
-                Box::new(futures::future::ok(Response::new().with_status(StatusCode::NotFound)))
+                Box::new(futures::future::ok(Response::new()
+                                             .with_status(StatusCode::NotFound)))
             },
         }
     }
@@ -90,39 +133,12 @@ impl Service for UpdateService {
 
 fn main() {
     // access token -> domain-id mapping
-    let mut tokens = HashMap::new();
-    tokens.insert("asdf".to_owned(), 259266683);
+    let mut tokens = TokenMap::new();
+    tokens.insert("asdf".to_owned(), (Name::from_str("obstsalat.nerven.gift").unwrap(), 259266683));
     println!("{:?}", tokens);
     let token_pt = Arc::new(tokens);
 
     let addr = "[::]:3000".parse().unwrap();
     let server = Http::new().bind(&addr, move || Ok(UpdateService{tokens:token_pt.clone()})).unwrap();
     server.run().unwrap();
-    
-    let new_ip = Ipv6Addr::from_str("2000::2:3:4").unwrap();
-
-    let current_dns_ip = match dns::lookup::<Ipv6Addr>(Name::from_str(HOSTNAME).unwrap()) {
-        Ok(maybe_ip) => match maybe_ip {
-            Some(ip) => ip,
-            None => panic!("there is no ip")
-        },
-        Err(err) => panic!("an Error occured! {}", err),
-    };
-    println!("{:?}", current_dns_ip);
-
-    let current_dns_ip = match dns::lookup::<Ipv4Addr>(Name::from_str(HOSTNAME).unwrap()) {
-        Ok(maybe_ip) => match maybe_ip {
-            Some(ip) => ip,
-            None => panic!("there is no ip")
-        },
-        Err(err) => panic!("an Error occured! {}", err),
-    };
-    println!("{:?}", current_dns_ip);
-
-    //if current_dns_ip != new_ip {
-    //    match inwx::update_dns(INWX_USER, INWX_PASS, DOMAIN_ID, new_ip) {
-    //        Ok(_) => println!("Changed AAAA record to {}", new_ip),
-    //        Err(err) => panic!("Error! {}", err),
-    //    };
-    //}
 }
