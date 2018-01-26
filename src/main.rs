@@ -101,15 +101,28 @@ fn main() {
     
     let new_ip = Ipv6Addr::from_str("2000::2:3:4").unwrap();
 
-    let current_dns_ip = match dns::lookup_v6(Name::from_str(HOSTNAME).unwrap()) {
-        Ok(ip) => ip,
+    let current_dns_ip = match dns::lookup::<Ipv6Addr>(Name::from_str(HOSTNAME).unwrap()) {
+        Ok(maybe_ip) => match maybe_ip {
+            Some(ip) => ip,
+            None => panic!("there is no ip")
+        },
         Err(err) => panic!("an Error occured! {}", err),
     };
+    println!("{:?}", current_dns_ip);
 
-    if current_dns_ip != new_ip {
-        match inwx::update_dns(INWX_USER, INWX_PASS, DOMAIN_ID, new_ip) {
-            Ok(_) => println!("Changed AAAA record to {}", new_ip),
-            Err(err) => panic!("Error! {}", err),
-        };
-    }
+    let current_dns_ip = match dns::lookup::<Ipv4Addr>(Name::from_str(HOSTNAME).unwrap()) {
+        Ok(maybe_ip) => match maybe_ip {
+            Some(ip) => ip,
+            None => panic!("there is no ip")
+        },
+        Err(err) => panic!("an Error occured! {}", err),
+    };
+    println!("{:?}", current_dns_ip);
+
+    //if current_dns_ip != new_ip {
+    //    match inwx::update_dns(INWX_USER, INWX_PASS, DOMAIN_ID, new_ip) {
+    //        Ok(_) => println!("Changed AAAA record to {}", new_ip),
+    //        Err(err) => panic!("Error! {}", err),
+    //    };
+    //}
 }
