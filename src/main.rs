@@ -58,7 +58,7 @@ impl Service for UpdateService {
             (&Method::Get, "/update") => {
                 Box::new(futures::future::ok(Response::new()
                                              .with_status(StatusCode::MethodNotAllowed)
-                                             .with_body("try POSTind data")))
+                                             .with_body("try POSTing data")))
             },
             (&Method::Post, "/update") => {
                 let new_addr = req.remote_addr().unwrap().ip();  // TODO: when will this fail?
@@ -74,7 +74,7 @@ impl Service for UpdateService {
                         None => {
                             return Response::new()
                                 .with_status(StatusCode::Unauthorized)
-                                .with_body("unknown token")},
+                                .with_body("NACK unknown token")},
                     };
 
                     let changed = match new_addr {
@@ -99,9 +99,12 @@ impl Service for UpdateService {
                     if changed {
                         match inwx::update_dns(&username, &password, domain_id, new_addr) {
                             Ok(_) => println!("Changed ip to {}", new_addr),
-                            Err(err) => return Response::new()
-                                .with_status(StatusCode::InternalServerError)
-                                .with_body("NACK could not update DNS record"),
+                            Err(err) => {
+                                println!("Error during DNS update: {}", err);
+                                return Response::new()
+                                    .with_status(StatusCode::InternalServerError)
+                                    .with_body("NACK could not update DNS record")
+                            },
                         }
                     } else {
                         println!("No change");
