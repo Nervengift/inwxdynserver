@@ -1,0 +1,17 @@
+[api]
+bind = "::"
+port = 3000
+
+[inwx]
+username = "alice"
+password = "fyuvfcB@z15wnbzMasly"
+
+[[hosts]]
+domain_name = "homepc.example.com"
+domain_id = 123456789
+token = "R}80dhbnmrzoygyXdzzj"
+
+[[hosts]]
+domain_name = "streambox.example.com"
+domain_id = 987654321
+token = "9+d4bAiykuatqhlrLjwj"

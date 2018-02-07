@@ -1,5 +1,6 @@
 mod inwx;
 mod dns;
+mod config;
 
 extern crate reqwest;
 extern crate trust_dns;
@@ -12,8 +13,11 @@ extern crate serde_xml_rs;
 extern crate hyper;
 extern crate futures;
 
+#[macro_use]
+extern crate quick_error;
+
 use std::fmt::Display;
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -26,16 +30,21 @@ use hyper::server::{Http, Request, Response, Service};
 use hyper::header::ContentLength;
 use hyper::{Method, StatusCode};
 
+use config::Config;
 
-const DOMAIN_ID: u32 = 123456789;
-const INWX_USER: &str = "user";
-const INWX_PASS: &str = "password";
-const HOSTNAME: &str = "foo@example.com";
 
 type TokenMap = HashMap<String, (Name, u32)>;
 
 struct UpdateService {
     tokens: Arc<TokenMap>,
+    inwx_username: String,
+    inwx_password: String,
+}
+
+impl UpdateService {
+    fn new(inwx_username: String, inwx_password: String, tokens: Arc<TokenMap>) -> UpdateService {
+        UpdateService{tokens: tokens, inwx_username: inwx_username, inwx_password: inwx_password}
+    }
 }
 
 impl Service for UpdateService {
@@ -54,6 +63,9 @@ impl Service for UpdateService {
             (&Method::Post, "/update") => {
                 let new_addr = req.remote_addr().unwrap().ip();  // TODO: when will this fail?
                 let tokens = self.tokens.clone();
+                let username = self.inwx_username.clone();
+                let password = self.inwx_password.clone();
+
                 Box::new(req.body().concat2().map(move |b| {
                     let token = String::from_utf8_lossy(b.as_ref().into());
                     println!("{}", token);
@@ -85,7 +97,7 @@ impl Service for UpdateService {
                     };
 
                     if changed {
-                        match inwx::update_dns(INWX_USER, INWX_PASS, domain_id, new_addr) {
+                        match inwx::update_dns(&username, &password, domain_id, new_addr) {
                             Ok(_) => println!("Changed ip to {}", new_addr),
                             Err(err) => return Response::new()
                                 .with_status(StatusCode::InternalServerError)
@@ -114,14 +126,27 @@ impl Service for UpdateService {
     }
 }
 
-fn main() {
-    // access token -> domain-id mapping
+// create a token -> domain map from the config for easier lookup
+fn get_tokens(config: &Config) -> TokenMap {
     let mut tokens = TokenMap::new();
-    tokens.insert("asdf".to_owned(), (Name::from_str("obstsalat.nerven.gift").unwrap(), 259266683));
-    println!("{:?}", tokens);
+    for host in config.hosts.iter() {
+        tokens.insert((*host.token).to_owned(), (host.domain_name.clone(), host.domain_id));
+    }
+    tokens
+}
+
+fn main() {
+    let conf = match config::get_config("config.toml".to_owned()) {
+        Ok(conf) => conf,
+        Err(err) => panic!("Configuration error: {}", err),
+    };
+    let tokens = get_tokens(&conf);
     let token_pt = Arc::new(tokens);
 
-    let addr = "[::]:3000".parse().unwrap();
-    let server = Http::new().bind(&addr, move || Ok(UpdateService{tokens:token_pt.clone()})).unwrap();
-    server.run().unwrap();
+    let username = conf.inwx.username;
+    let password = conf.inwx.password;
+
+    let addr = SocketAddr::new(conf.api.bind, conf.api.port);
+    let server = Http::new().bind(&addr, move || Ok(UpdateService::new(username.clone(), password.clone(), token_pt.clone()))).unwrap();
+    server.run().unwrap()
 }
