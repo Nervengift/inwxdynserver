@@ -62,6 +62,9 @@ impl Service for UpdateService {
             },
             (&Method::Post, "/update") => {
                 let new_addr = req.remote_addr().unwrap().ip();  // TODO: when will this fail?
+
+                // we need to clone() here, because of the move closure
+                // TODO: can we solve this any better? These are all only needed read-only...
                 let tokens = self.tokens.clone();
                 let username = self.inwx_username.clone();
                 let password = self.inwx_password.clone();
