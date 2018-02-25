@@ -43,7 +43,7 @@ impl HasIpAddr for Ipv6Addr {
     }
 }
 
-pub fn lookup<T:HasIpAddr>(hostname: Name) -> Result<Option<T::Addr>, trust_dns::error::ClientError> {
+pub fn lookup<T:HasIpAddr>(hostname: &Name) -> Result<Option<T::Addr>, trust_dns::error::ClientError> {
     let address = DNS_SERVER.parse().unwrap();
     let conn = UdpClientConnection::new(address)?;
     let client = SyncClient::new(conn);

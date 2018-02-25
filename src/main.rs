@@ -82,7 +82,7 @@ impl Service for UpdateService {
 
                     let changed = match new_addr {
                         IpAddr::V4(new_ip) => {
-                            let old_ip = dns::lookup::<Ipv4Addr>(Name::from_str(HOSTNAME).unwrap());
+                            let old_ip = dns::lookup::<Ipv4Addr>(hostname);
                             match old_ip {
                                 Ok(Some(ip)) => new_ip != ip,
                                 // TODO: log errors?
@@ -90,7 +90,7 @@ impl Service for UpdateService {
                             }
                         },
                         IpAddr::V6(new_ip) => {
-                            let old_ip = dns::lookup::<Ipv6Addr>(Name::from_str(HOSTNAME).unwrap());
+                            let old_ip = dns::lookup::<Ipv6Addr>(hostname);
                             match old_ip {
                                 Ok(Some(ip)) => new_ip != ip,
                                 // TODO: log errors?
