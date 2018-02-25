@@ -16,12 +16,10 @@ extern crate futures;
 #[macro_use]
 extern crate quick_error;
 
-use std::fmt::Display;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use std::str::FromStr;
 use trust_dns::rr::Name;
 
 use futures::Future;

@@ -1,8 +1,7 @@
 extern crate trust_dns;
 
-use trust_dns::client::{Client, ClientConnection, ClientStreamHandle, SyncClient};
+use trust_dns::client::{Client, SyncClient};
 use trust_dns::udp::UdpClientConnection;
-use std::str::FromStr;
 use trust_dns::op::Message;
 use trust_dns::rr::{DNSClass, Name, RData, Record, RecordType};
 
