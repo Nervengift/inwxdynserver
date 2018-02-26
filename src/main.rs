@@ -30,6 +30,10 @@ use hyper::{Method, StatusCode};
 
 use config::Config;
 
+static USAGE: &'static str = "Proxy for setting DNS entries at INWX
+
+Usage:
+    inxwdynserver [CONFIGPATH]";
 
 type TokenMap = HashMap<String, (Name, u32)>;
 
@@ -140,9 +144,18 @@ fn get_tokens(config: &Config) -> TokenMap {
 }
 
 fn main() {
-    let conf = match config::get_config("config.toml".to_owned()) {
+    let configfile = std::env::args().nth(1).unwrap_or("config.toml".to_owned());
+    if configfile == "--help" {
+        eprintln!("{}", USAGE);
+        std::process::exit(0);
+    }
+
+    let conf = match config::get_config(configfile) {
         Ok(conf) => conf,
-        Err(err) => panic!("Configuration error: {}", err),
+        Err(err) => {
+            eprintln!("Could not read configuration: {}", err);
+            std::process::exit(1);
+        }
     };
     let tokens = get_tokens(&conf);
     let token_pt = Arc::new(tokens);
