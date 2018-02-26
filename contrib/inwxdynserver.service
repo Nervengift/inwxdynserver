@@ -1,0 +1,10 @@
+[Unit]
+Description=Dynamic DNS proxy for INWX
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/inwxdynserver /etc/inwxsynserver/config.toml
+User=inwxdynserver
+
+[Install]
+WantedBy=multi-user.target
