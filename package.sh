@@ -7,7 +7,6 @@ cargo build --release
 
 fpm -f -s dir -t deb -n inwxdynserver -v "$version" \
 	-m dev@nervengiftlabs.de \
-	-d 'libssl1.1' \
 	--after-install contrib/install.sh \
 	--before-remove contrib/uninstall.sh \
 	target/release/inwxdynserver=/usr/bin/ \

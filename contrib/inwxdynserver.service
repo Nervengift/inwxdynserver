@@ -3,7 +3,7 @@ Description=Dynamic DNS proxy for INWX
 After=network.target
 
 [Service]
-ExecStart=/usr/bin/inwxdynserver /etc/inwxsynserver/config.toml
+ExecStart=/usr/bin/inwxdynserver /etc/inwxdynserver/config.toml
 User=inwxdynserver
 
 [Install]
