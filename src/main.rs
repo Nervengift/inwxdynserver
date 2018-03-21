@@ -19,6 +19,7 @@ extern crate quick_error;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::str::FromStr;
 
 use trust_dns::rr::Name;
 
@@ -63,7 +64,14 @@ impl Service for UpdateService {
                                              .with_body("try POSTing data")))
             },
             (&Method::Post, "/update") => {
-                let new_addr = req.remote_addr().unwrap().ip();  // TODO: when will this fail?
+                let new_addr = match req.headers().get_raw("X-Real-IP") {
+                    Some(real_ip_raw) => {
+                        let addr_str = &String::from_utf8_lossy(real_ip_raw.one().unwrap());
+                        let addr_str = addr_str.split(',').nth(0).unwrap();
+                        IpAddr::from_str(addr_str).unwrap()
+                    },
+                    None => req.remote_addr().unwrap().ip(),  // TODO: when will this fail?
+                };
 
                 // we need to clone() here, because of the move closure
                 // TODO: can we solve this any better? These are all only needed read-only...
