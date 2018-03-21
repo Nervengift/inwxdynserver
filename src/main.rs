@@ -81,7 +81,6 @@ impl Service for UpdateService {
 
                 Box::new(req.body().concat2().map(move |b| {
                     let token = String::from_utf8_lossy(b.as_ref().into());
-                    println!("{}", token);
                     let (hostname, domain_id) = match tokens.get(&*token) {
                         Some(&(ref hostname, domain_id)) => (hostname, domain_id),
                         None => {
