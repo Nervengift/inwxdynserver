@@ -66,7 +66,7 @@ impl Service for UpdateService {
             (&Method::Post, "/update") => {
                 let new_addr = match req.headers().get_raw("X-Real-IP") {
                     Some(real_ip_raw) => {
-                        let addr_str = &String::from_utf8_lossy(real_ip_raw.one().unwrap());
+                        let addr_str = &String::from_utf8_lossy(&real_ip_raw[0]);
                         let addr_str = addr_str.split(',').nth(0).unwrap();
                         IpAddr::from_str(addr_str).unwrap()
                     },
